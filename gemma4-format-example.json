@@ -1,0 +1,17 @@
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        {"type": "audio", "audio": "/path/to/audio OR object"},
+        {"type": "text", "text": "Transcribe the following speech segment in English into English text. Only output the transcription."}
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {"type": "text", "text": "Hello everyone and welcome back."}
+      ]
+    }
+  ]
+}

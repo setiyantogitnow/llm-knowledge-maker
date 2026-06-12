@@ -1,0 +1,28 @@
+Gemma 4 data best practices
+
+Gemma 4 has a few formatting details you need to keep in mind.
+1. Use standard chat roles
+
+Gemma 4 uses the standard:
+
+    system
+
+    user
+
+    assistant
+
+This means your SFT dataset should be written in regular chat format rather than older Gemma-specific role formats.
+2. Thinking mode is explicit
+
+If you want to preserve thinking-style behavior during SFT:
+
+    keep the format consistent
+
+    decide whether you want to train on visible thought blocks or on final answers only
+
+    do not mix multiple incompatible thought formats in the same dataset
+
+For most production assistants, the simplest setup is to fine-tune on the final visible answer only.
+3. Multi-turn rule
+
+For multi-turn conversations, only keep the final visible answer in the conversation history. Do not feed earlier thought blocks back into later turns

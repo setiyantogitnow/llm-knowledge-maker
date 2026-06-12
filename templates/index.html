@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF RAG Pre-processor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .format-card { transition: all 0.2s ease; }
+        .format-card:has(input:checked) {
+            border-color: rgb(37 99 235);
+            background-color: rgb(239 246 255);
+            box-shadow: 0 0 0 3px rgb(191 219 254);
+        }
+        details > summary { list-style: none; cursor: pointer; }
+        details > summary::-webkit-details-marker { display: none; }
+        .animate-fade-in { animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen font-sans text-slate-900">
+    <div class="max-w-5xl mx-auto py-10 px-4">
+
+        <!-- Header -->
+        <header class="text-center mb-10">
+            <div class="inline-flex items-center gap-3 bg-white px-5 py-2 rounded-full shadow-sm border border-slate-200 mb-4">
+                <i class="fa-solid fa-file-pdf text-red-500 text-xl"></i>
+                <span class="text-sm font-semibold text-slate-700">PDF &rarr; Knowledge Base</span>
+            </div>
+            <h1 class="text-4xl font-extrabold text-slate-900 mb-3">RAG Pre-processor</h1>
+            <p class="text-slate-600 max-w-2xl mx-auto">
+                Ubah transkrip PDF yang berantakan menjadi <strong>Knowledge Base terstruktur</strong>
+                untuk kebutuhan RAG atau fine-tuning model LLM Anda.
+            </p>
+        </header>
+
+        <main class="bg-white shadow-xl rounded-2xl p-8 border border-slate-200">
+
+            <form action="/process" method="post" enctype="multipart/form-data" class="space-y-8">
+
+                <!-- SECTION 1: Output Format -->
+                <section>
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="bg-blue-100 text-blue-700 w-7 h-7 rounded-full inline-flex items-center justify-center text-sm font-bold">1</span>
+                        <h2 class="text-lg font-bold text-slate-800">Pilih Format Output</h2>
+                    </div>
+                    <p class="text-sm text-slate-500 mb-4 ml-9">Tentukan hasil akhir yang ingin Anda dapatkan dari proses ini.</p>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 ml-9">
+                        <label class="format-card cursor-pointer border-2 border-slate-200 rounded-xl p-5 bg-white hover:border-blue-300">
+                            <div class="flex items-start gap-3">
+                                <input type="radio" name="format_type" value="kb" checked class="mt-1 w-4 h-4 text-blue-600 focus:ring-blue-500 cursor-pointer">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <i class="fa-solid fa-database text-green-600"></i>
+                                        <span class="font-bold text-slate-800">Knowledge Base (Markdown)</span>
+                                    </div>
+                                    <p class="text-sm text-slate-600 leading-relaxed">
+                                        Dokumen terstruktur berisi entitas, mekanisme, efek, dan relasi.
+                                        Cocok untuk <strong>RAG retrieval</strong> dan dibaca manusia.
+                                    </p>
+                                </div>
+                            </div>
+                        </label>
+
+                        <label class="format-card cursor-pointer border-2 border-slate-200 rounded-xl p-5 bg-white hover:border-blue-300">
+                            <div class="flex items-start gap-3">
+                                <input type="radio" name="format_type" value="sft" class="mt-1 w-4 h-4 text-blue-600 focus:ring-blue-500 cursor-pointer">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <i class="fa-solid fa-code text-amber-600"></i>
+                                        <span class="font-bold text-slate-800">SFT Dataset (JSON)</span>
+                                        </div>
+                                        <p class="text-sm text-slate-600 leading-relaxed">
+                                            Dataset dalam format JSON mengikuti standar Gemma 4 untuk
+                                            <strong class="text-slate-800">Supervised Fine-Tuning</strong> model LLM.
+                                        </p>
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+                </section>
+
+                <hr class="border-slate-200">
+
+                <!-- SECTION 2: LLM Config -->
+                <section>
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="bg-blue-100 text-blue-700 w-7 h-7 rounded-full inline-flex items-center justify-center text-sm font-bold">2</span>
+                        <h2 class="text-lg font-bold text-slate-800">Konfigurasi LLM</h2>
+                    </div>
+                    <p class="text-sm text-slate-500 mb-4 ml-9">Pilih provider, isi nama model, dan API key (jika diperlukan).</p>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 ml-9">
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1.5">
+                                <i class="fa-solid fa-server text-slate-400 mr-1"></i>Provider
+                            </label>
+                            <select name="provider" class="w-full p-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none">
+                                <option value="ollama">Ollama (Lokal)</option>
+                                <option value="ollama-cloud" selected>Ollama Cloud</option>
+                                <option value="openai">OpenAI</option>
+                                <option value="openrouter">OpenRouter</option>
+                                <option value="nvidia">NVIDIA NIM</option>
+                                <option value="gemini">Google Gemini</option>
+                                <option value="huggingface">HuggingFace</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1.5">
+                                <i class="fa-solid fa-microchip text-slate-400 mr-1"></i>Nama Model
+                            </label>
+                            <input type="text" name="model" placeholder="llama3, gpt-4o, gemini-2.5-flash..."
+                                   class="w-full p-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none" required>
+                            <p class="text-xs text-slate-500 mt-1">Lihat daftar model di situs provider</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1.5">
+                                <i class="fa-solid fa-key text-slate-400 mr-1"></i>API Key
+                            </label>
+                            <input type="password" name="api_key" placeholder="sk-... (opsional untuk Ollama lokal)"
+                                   class="w-full p-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none">
+                            <p class="text-xs text-slate-500 mt-1">Tidak disimpan di server</p>
+                        </div>
+                    </div>
+                </section>
+
+                <hr class="border-slate-200">
+
+                <!-- SECTION 3: Upload PDF -->
+                <section>
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="bg-blue-100 text-blue-700 w-7 h-7 rounded-full inline-flex items-center justify-center text-sm font-bold">3</span>
+                        <h2 class="text-lg font-bold text-slate-800">Upload File PDF</h2>
+                    </div>
+                    <p class="text-sm text-slate-500 mb-4 ml-9">Pilih file PDF transkrip yang ingin diproses.</p>
+
+                    <div class="ml-9">
+                        <label for="dropzone-file" id="dropzone-label"
+                               class="flex flex-col items-center justify-center w-full h-56 border-2 border-slate-300 border-dashed rounded-xl cursor-pointer bg-slate-50 hover:bg-blue-50 hover:border-blue-400 transition-all overflow-hidden">
+                            <div id="dropzone-default-content" class="flex flex-col items-center justify-center pt-5 pb-6">
+                                <div class="bg-blue-100 text-blue-600 p-4 rounded-full mb-3">
+                                    <i class="fa-solid fa-cloud-arrow-up text-3xl"></i>
+                                </div>
+                                <p class="mb-1 text-base text-slate-700 font-semibold">Klik untuk pilih, atau tarik file ke sini</p>
+                                <p class="text-xs text-slate-500">Hanya file PDF &middot; Maks ~10MB</p>
+                            </div>
+                            <div id="dropzone-file-preview" class="hidden flex flex-col items-center justify-center pt-5 pb-6 w-full">
+                                <div class="bg-red-100 text-red-600 p-4 rounded-full mb-3">
+                                    <i class="fa-solid fa-file-pdf text-3xl"></i>
+                                </div>
+                                <p id="selected-filename" class="text-sm font-semibold text-slate-800 mb-2 truncate max-w-md px-4 text-center">filename.pdf</p>
+                                <p class="text-xs text-blue-600 hover:text-blue-800 hover:underline cursor-pointer font-medium" onclick="resetFileInput(event)">
+                                    <i class="fa-solid fa-arrow-rotate-left mr-1"></i>Ganti file
+                                </p>
+                            </div>
+                            <input id="dropzone-file" type="file" name="file" accept="application/pdf" class="hidden" required onchange="handleFileSelect(this)" />
+                        </label>
+                    </div>
+                </section>
+
+                <!-- Submit -->
+                <div class="flex justify-center pt-2">
+                    <button type="submit" id="submit-btn"
+                            class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-3.5 px-10 rounded-xl transition-all shadow-lg hover:shadow-xl flex items-center disabled:opacity-50 disabled:cursor-not-allowed">
+                        <i class="fa-solid fa-wand-magic-sparkles mr-2"></i>
+                        <span id="submit-text">Generate Knowledge Base</span>
+                    </button>
+                </div>
+            </form>
+
+            <!-- Results Section -->
+            <div class="space-y-6 pt-8 mt-8 border-t border-slate-200">
+
+                {% if error %}
+                <div class="p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded-r-lg animate-fade-in">
+                    <div class="flex items-start gap-3">
+                        <i class="fa-solid fa-triangle-exclamation text-red-500 text-xl mt-0.5"></i>
+                        <div>
+                            <p class="font-bold">Terjadi Kesalahan</p>
+                            <p class="text-sm mt-1">{{ error }}</p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if result %}
+                <div class="animate-fade-in">
+                    <div class="flex items-center justify-between flex-wrap gap-2 mb-3">
+                        <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                            {% if format_type == 'sft' %}
+                                <i class="fa-solid fa-code text-amber-500"></i>
+                                <span>SFT Dataset (JSONL)</span>
+                                <span class="text-xs font-normal bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Instruction-Response pairs</span>
+                            {% else %}
+                                <i class="fa-solid fa-database text-green-500"></i>
+                                <span>Structured Knowledge Base</span>
+                                <span class="text-xs font-normal bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Markdown</span>
+                            {% endif %}
+                        </h2>
+                        <div class="flex items-center gap-3">
+                            <span class="text-xs text-slate-500 italic">
+                                <i class="fa-regular fa-file-lines mr-1"></i>{{ filename }}
+                            </span>
+                            <button onclick="downloadResult()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 py-1.5 px-3 rounded-md font-medium transition-colors flex items-center">
+                                <i class="fa-solid fa-download mr-1.5"></i>Download
+                            </button>
+                        </div>
+                    </div>
+                    <div class="relative group">
+                        <pre id="result-pre" class="p-5 bg-slate-900 text-slate-200 rounded-xl overflow-x-auto text-sm leading-relaxed border border-slate-700 whitespace-pre-wrap shadow-inner max-h-[500px] overflow-y-auto">{{ result }}</pre>
+                        <button onclick="copyToClipboard(this, 'result-pre')" class="absolute top-3 right-3 bg-slate-700 hover:bg-slate-600 text-white text-xs py-1.5 px-3 rounded-md transition-all opacity-0 group-hover:opacity-100 flex items-center">
+                            <i class="fa-regular fa-copy mr-1.5"></i>Copy
+                        </button>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if prompt %}
+                <details class="animate-fade-in">
+                    <summary class="text-sm font-semibold text-slate-600 hover:text-slate-900 py-2 flex items-center gap-2 select-none">
+                        <i class="fa-solid fa-chevron-right text-xs transition-transform" id="debug-arrow"></i>
+                        <i class="fa-solid fa-terminal text-blue-500"></i>
+                        Lihat Generated Prompt (Debug)
+                    </summary>
+                    <div class="relative group mt-2">
+                        <pre id="prompt-pre" class="p-5 bg-slate-100 text-slate-700 rounded-xl overflow-x-auto text-xs leading-relaxed border border-slate-200 whitespace-pre-wrap max-h-[400px] overflow-y-auto">{{ prompt }}</pre>
+                        <button onclick="copyToClipboard(this, 'prompt-pre')" class="absolute top-3 right-3 bg-slate-300 hover:bg-slate-400 text-slate-700 text-xs py-1.5 px-3 rounded-md transition-all opacity-0 group-hover:opacity-100 flex items-center">
+                            <i class="fa-regular fa-copy mr-1.5"></i>Copy
+                        </button>
+                    </div>
+                </details>
+                {% endif %}
+            </div>
+        </main>
+
+        <footer class="text-center mt-8 text-slate-400 text-sm">
+            PDF RAG Pre-processor &middot; FastAPI + Tailwind CSS
+        </footer>
+    </div>
+
+    <script>
+        // --- Dropzone ---
+        const dropzone = document.getElementById('dropzone-label');
+        const fileInput = document.getElementById('dropzone-file');
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropzone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            }, false);
+        });
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropzone.addEventListener(eventName, () => {
+                dropzone.classList.add('border-blue-600', 'bg-blue-50', 'ring-2', 'ring-blue-200');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropzone.addEventListener(eventName, () => {
+                dropzone.classList.remove('border-blue-600', 'bg-blue-50', 'ring-2', 'ring-blue-200');
+            }, false);
+        });
+
+        dropzone.addEventListener('drop', (e) => {
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                handleFileSelect(fileInput);
+            }
+        });
+
+        function handleFileSelect(input) {
+            const file = input.files[0];
+            if (file) {
+                document.getElementById('dropzone-default-content').classList.add('hidden');
+                document.getElementById('dropzone-file-preview').classList.remove('hidden');
+                document.getElementById('selected-filename').innerText = file.name;
+                dropzone.classList.remove('bg-slate-50', 'border-slate-300');
+                dropzone.classList.add('bg-blue-50', 'border-blue-400');
+            }
+        }
+
+        function resetFileInput(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            fileInput.value = '';
+            document.getElementById('dropzone-default-content').classList.remove('hidden');
+            document.getElementById('dropzone-file-preview').classList.add('hidden');
+            dropzone.classList.remove('bg-blue-50', 'border-blue-400');
+            dropzone.classList.add('bg-slate-50', 'border-slate-300');
+        }
+
+        // --- Dynamic button text based on format selection ---
+        const radios = document.querySelectorAll('input[name="format_type"]');
+        const submitText = document.getElementById('submit-text');
+        function updateSubmitText() {
+            const selected = document.querySelector('input[name="format_type"]:checked').value;
+            submitText.textContent = selected === 'sft' ? 'Generate SFT Dataset' : 'Generate Knowledge Base';
+        }
+        radios.forEach(r => r.addEventListener('change', updateSubmitText));
+        updateSubmitText();
+
+        // --- Animate debug arrow on open ---
+        document.querySelectorAll('details').forEach(d => {
+            d.addEventListener('toggle', () => {
+                const arrow = d.querySelector('#debug-arrow');
+                if (arrow) arrow.style.transform = d.open ? 'rotate(90deg)' : 'rotate(0)';
+            });
+        });
+
+        // --- Copy to clipboard ---
+        function copyToClipboard(btn, targetId) {
+            const el = document.getElementById(targetId);
+            if (!el) return;
+            const text = el.innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                const original = btn.innerHTML;
+                btn.innerHTML = '<i class="fa-solid fa-check mr-1.5"></i>Copied!';
+                btn.classList.add('opacity-100', 'bg-green-600', 'text-white');
+                setTimeout(() => {
+                    btn.innerHTML = original;
+                    btn.classList.remove('bg-green-600', 'text-white');
+                }, 1500);
+            }).catch(() => alert('Gagal menyalin. Silakan salin manual.'));
+        }
+
+        // --- Download result ---
+        function downloadResult() {
+            const resultEl = document.getElementById('result-pre');
+            const formatType = document.querySelector('input[name="format_type"]:checked').value;
+            const ext = formatType === 'sft' ? 'json' : 'md';
+            const mime = formatType === 'sft' ? 'application/json' : 'text/markdown';
+            const blob = new Blob([resultEl.innerText], { type: mime });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'rag_output.' + ext;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
