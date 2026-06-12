@@ -17,8 +17,8 @@ Aplikasi RAG (Retrieval-Augmented Generation) yang dirancang untuk memproses dok
 
 1. **Clone Repository**
    ```bash
-   git clone https://github.com/USERNAME/REPO_NAME.git
-   cd pdf-rag-app
+   git clone https://github.com/setiyantogitnow/llm-knowledge-maker.git
+   cd llm-knowledge-maker
    ```
 
 2. **Setup Virtual Environment**
